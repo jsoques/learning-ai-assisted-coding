@@ -3,6 +3,26 @@
 A full-stack e-commerce backend built with **FastAPI (Clean Architecture)**, **HTMX** frontend, **SQLite**, **.NET Aspire** orchestration, and **Mailpit** email capture.
 
 ---
+## How I started
+On command prompt, start with: (selected OpenCode and Windsurf, I use Windsurf(devin) later to validate what Opencode/Openspec did)  
+```sh
+openspec init
+```
+Then fire up OpenCode:  
+```sh
+opencode .
+```
+Then start openspec prompt with /opsx-propose with this:  
+```
+using knowledge from skill 'clean-architecture-python' create a FastAPI application
+to build an e-commerce order and inventory system with full auth. We will start by using SQLite. I want .Net
+Aspire to orchestrate and monitor the FastApi application. If emailing will be used, instead if Sendgrid, I would
+like to use Mailpit.
+```
+---
+> [!NOTE]
+> This is still a work in progress as I am learning this slew of tools that are pouring in our daily feeds for knowledge...
+---
 
 ## Table of Contents
 
@@ -73,7 +93,7 @@ All prompts are listed in chronological order as they were issued to the AI assi
 
 | Tool | Role |
 |------|------|
-| **Claude Code (opencode)** | Primary AI coding assistant — wrote all code, ran commands, debugged issues across the full stack |
+| **OpenCode(with openspec)** | Primary AI coding assistant — wrote all code, ran commands, debugged issues across the full stack |
 | **GSD Skills** (gsd-new-project, gsd-discuss-phase, gsd-plan-phase, gsd-execute-phase, gsd-verify-work, gsd-archive-change) | Structured development workflow: project initialization, phase discussion, planning, execution, verification, and archiving |
 | **brainstorming skill** | Explored design options and requirements before implementation |
 | **dotnet-api skill** | Guided .NET Aspire project structure and AppHost configuration |

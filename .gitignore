@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+.pytest_cache/
+*.db
+
+# Environment
+.env
+
+# IDE / Editors
+.opencode/
+.windsurf/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# .NET / Aspire
+aspire/**/bin/
+aspire/**/obj/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Development artifacts
+openspec/
+ste*.md
+step*.md
+steps.txt
+
+# Data directory (keep the dir, ignore contents)
+/data/*
+!/data/.gitkeep

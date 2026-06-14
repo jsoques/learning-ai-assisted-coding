@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Products - Shop{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Products</h1>
+    <div class="flex space-x-2">
+        <input type="text" id="search" placeholder="Search..." 
+               class="border rounded px-3 py-2"
+               hx-get="/products/search"
+               hx-trigger="keyup changed delay:300ms"
+               hx-target="#product-list"
+               name="q">
+        <select id="category-filter" class="border rounded px-3 py-2"
+                hx-get="/products/search"
+                hx-trigger="change"
+                hx-target="#product-list"
+                name="category_id">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div id="product-list" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    {% for product in products %}
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="font-semibold text-lg">{{ product.name }}</h3>
+        <p class="text-gray-500 text-sm mt-1">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+        <p class="text-xl font-bold text-indigo-600 mt-2">${{ "%.2f"|format(product.price|float) }}</p>
+        <p class="text-sm text-gray-400">SKU: {{ product.sku }}</p>
+        <div class="mt-3 flex space-x-2">
+            <a href="/products/{{ product.id }}" class="flex-1 text-center bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">View</a>
+            <button class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700"
+                    hx-post="/cart/add/{{ product.id }}"
+                    hx-target="#cart-status"
+                    hx-swap="innerHTML">+ Cart</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex justify-center mt-6 space-x-2">
+    {% for p in range(1, total_pages + 1) %}
+    <a href="/products?page={{ p }}" class="px-3 py-1 border rounded {% if p == page %}bg-indigo-600 text-white{% endif %}">{{ p }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div id="cart-status" class="fixed bottom-4 right-4"></div>
+{% endblock %}

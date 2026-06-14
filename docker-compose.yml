@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    image: my-ecommerce-app:v0.0.1
+    ports:
+      - "5566:5566"
+    environment:
+      - DATABASE_URL=sqlite:///data/ecommerce.db
+      - MAILPIT_URL=http://mailpit:8025
+      - JWT_SECRET=dev-secret-change-in-production
+      - OPENTELEMETRY_ENDPOINT=http://aspire:4317
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - mailpit
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"

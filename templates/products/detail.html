@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Shop{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <a href="/products" class="text-indigo-600 hover:underline mb-4 inline-block">← Back to Products</a>
+    <div class="bg-white rounded-lg shadow p-6">
+        <h1 class="text-3xl font-bold">{{ product.name }}</h1>
+        <p class="text-2xl font-bold text-indigo-600 mt-2">${{ "%.2f"|format(product.price|float) }}</p>
+        <p class="text-gray-500 mt-1">SKU: {{ product.sku }}</p>
+        <p class="text-gray-700 mt-4">{{ product.description }}</p>
+        <div class="mt-6 flex items-center space-x-4">
+            <input type="number" id="qty-{{ product.id }}" value="1" min="1" class="border rounded px-3 py-2 w-20">
+            <button class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+                    hx-post="/cart/add/{{ product.id }}"
+                    hx-vals='{"quantity": document.getElementById("qty-{{ product.id }}").value}'
+                    hx-target="#cart-status"
+                    hx-swap="innerHTML">Add to Cart</button>
+        </div>
+    </div>
+
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold mb-4">Inventory</h2>
+        {% if inventory %}
+        <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+                <p class="text-2xl font-bold">{{ inventory.on_hand }}</p>
+                <p class="text-sm text-gray-500">On Hand</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold">{{ inventory.reserved }}</p>
+                <p class="text-sm text-gray-500">Reserved</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold {% if inventory.is_low_stock %}text-red-600{% else %}text-green-600{% endif %}">{{ inventory.available }}</p>
+                <p class="text-sm text-gray-500">Available</p>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-gray-500">No inventory data.</p>
+        {% endif %}
+    </div>
+</div>
+<div id="cart-status" class="fixed bottom-4 right-4"></div>
+{% endblock %}

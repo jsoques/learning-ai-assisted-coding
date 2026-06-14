@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Cart - Shop{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Shopping Cart</h1>
+
+{% if cart and cart.items %}
+<div class="bg-white rounded-lg shadow">
+    <div id="cart-items">
+        {% for item in cart.items %}
+        <div class="flex items-center justify-between p-4 border-b" id="cart-item-{{ item.product_id }}">
+            <div class="flex-1">
+                <p class="font-semibold">{{ item.product_name }}</p>
+                <p class="text-sm text-gray-500">${{ "%.2f"|format(item.unit_price|float) }} x {{ item.quantity }}</p>
+            </div>
+            <div class="text-right">
+                <p class="font-bold">${{ "%.2f"|format(item.line_total|float) }}</p>
+                <button class="text-red-600 text-sm hover:underline mt-1"
+                        hx-delete="/cart/items/{{ item.product_id }}"
+                        hx-target="#cart-item-{{ item.product_id }}"
+                        hx-swap="outerHTML">Remove</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="p-4 flex justify-between items-center">
+        <div>
+            <p class="text-lg font-bold">Total: ${{ "%.2f"|format(cart.total|float) }}</p>
+        </div>
+        <div class="space-x-2">
+            <button class="text-red-600 border border-red-600 px-4 py-2 rounded hover:bg-red-50"
+                    hx-delete="/cart/clear"
+                    hx-target="#cart-items"
+                    hx-swap="outerHTML">Clear</button>
+            <a href="/orders/checkout" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">Checkout</a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-12">
+    <p class="text-gray-500 text-lg">Your cart is empty.</p>
+    <a href="/products" class="text-indigo-600 hover:underline mt-2 inline-block">Browse Products</a>
+</div>
+{% endif %}
+{% endblock %}

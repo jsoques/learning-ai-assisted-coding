@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Inventory - Shop{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Manage Inventory</h1>
+
+<div class="bg-white rounded-lg shadow p-6">
+    <table class="w-full text-left">
+        <thead>
+            <tr class="border-b">
+                <th class="py-2">Product</th>
+                <th class="py-2">On Hand</th>
+                <th class="py-2">Reserved</th>
+                <th class="py-2">Available</th>
+                <th class="py-2">Threshold</th>
+                <th class="py-2">Restock</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory_items %}
+            <tr class="border-b" id="inv-row-{{ item.product_id }}">
+                <td class="py-2">{{ item.product_name }}</td>
+                <td class="py-2">{{ item.on_hand }}</td>
+                <td class="py-2">{{ item.reserved }}</td>
+                <td class="py-2 {% if item.is_low_stock %}text-red-600 font-bold{% endif %}">{{ item.available }}</td>
+                <td class="py-2">{{ item.low_stock_threshold }}</td>
+                <td class="py-2">
+                    <input type="number" id="restock-qty-{{ item.product_id }}" value="10" min="1" class="border rounded px-2 py-1 w-20 text-sm">
+                    <button class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                            hx-post="/admin/inventory/{{ item.product_id }}/restock"
+                            hx-vals='{"quantity": document.getElementById("restock-qty-{{ item.product_id }}").value}'
+                            hx-target="#inv-row-{{ item.product_id }}"
+                            hx-swap="outerHTML">Restock</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" class="py-4 text-center text-gray-500">No inventory items found. Create products first.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

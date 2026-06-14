@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Shop{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10">
+    <h1 class="text-2xl font-bold mb-6">Profile</h1>
+    <div class="bg-white rounded-lg shadow p-6 space-y-4">
+        <div>
+            <span class="text-sm text-gray-500">Email</span>
+            <p class="text-lg font-medium">{{ user.email }}</p>
+        </div>
+        <div>
+            <span class="text-sm text-gray-500">Role</span>
+            <p class="text-lg font-medium">{{ user.role }}</p>
+        </div>
+        {% if must_change_password %}
+        <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded">
+            You must change your password on first login.
+        </div>
+        {% endif %}
+        <a href="/auth/change-password" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Change Password</a>
+    </div>
+</div>
+{% endblock %}

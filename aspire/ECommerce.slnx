@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ECommerce.AppHost/ECommerce.AppHost.csproj" />
+  <Project Path="ECommerce.ServiceDefaults/ECommerce.ServiceDefaults.csproj" />
+</Solution>

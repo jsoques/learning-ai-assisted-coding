@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}E-Commerce{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/alpinejs@3.14.8" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b" x-data="{ mobileOpen: false }">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-xl font-bold text-indigo-600">Shop</a>
+                    <div class="hidden md:flex space-x-4">
+                        <a href="/products" class="text-gray-600 hover:text-indigo-600 px-3 py-2">Products</a>
+                        {% if user %}
+                        <a href="/cart" class="text-gray-600 hover:text-indigo-600 px-3 py-2">Cart</a>
+                        <a href="/orders" class="text-gray-600 hover:text-indigo-600 px-3 py-2">Orders</a>
+                        {% endif %}
+                        {% if user and user.role == "admin" %}
+                        <a href="/admin" class="text-gray-600 hover:text-indigo-600 px-3 py-2">Admin</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    {% if user %}
+                    <a href="/auth/profile" class="text-gray-600 hover:text-indigo-600">{{ user.email }}</a>
+                    <a href="/auth/logout" class="text-gray-600 hover:text-red-600">Logout</a>
+                    {% else %}
+                    <a href="/auth/login" class="text-gray-600 hover:text-indigo-600">Login</a>
+                    <a href="/auth/register" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Register</a>
+                    {% endif %}
+                </div>
+                <div class="md:hidden flex items-center">
+                    <button @click="mobileOpen = !mobileOpen" class="text-gray-600">☰</button>
+                </div>
+            </div>
+        </div>
+        <div x-show="mobileOpen" class="md:hidden border-t px-4 py-2 space-y-2">
+            <a href="/products" class="block text-gray-600">Products</a>
+            {% if user %}
+            <a href="/cart" class="block text-gray-600">Cart</a>
+            <a href="/orders" class="block text-gray-600">Orders</a>
+            <a href="/auth/profile" class="block text-gray-600">Profile</a>
+            <a href="/auth/logout" class="block text-red-600">Logout</a>
+            {% else %}
+            <a href="/auth/login" class="block text-gray-600">Login</a>
+            <a href="/auth/register" class="block text-indigo-600">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

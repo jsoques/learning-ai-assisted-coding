@@ -271,10 +271,7 @@ python -m src.framework.main
 ### With .NET Aspire Dashboard
 
 ```bash
-# In one terminal — start the Python app
-python -m src.framework.main
-
-# In another terminal — start Aspire dashboard
+# Stop python app from above if started separately
 cd aspire
 dotnet run --project ECommerce.AppHost
 # Opens dashboard at https://localhost:15888

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.application.dto.dtos import InventoryResponse, RestockRequest
 from src.application.ports.inventory_repository import InventoryRepository
@@ -43,7 +43,7 @@ class RecordRestockUseCase:
         event = RestockEvent(
             product_id=product_id,
             quantity=request.quantity,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         updated = self._inventory_repo.record_restock(event)
         return Result.success(

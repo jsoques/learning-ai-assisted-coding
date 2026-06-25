@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.application.dto.dtos import (
@@ -47,6 +48,7 @@ from src.framework.auth.dependencies import get_current_user, optional_user, req
 from src.framework.auth.jwt import create_access_token, create_refresh_token, decode_token
 from src.framework.db.models import UserModel
 from src.framework.db.session import get_db
+from src.infra.events.simple_event_bus import LoggingEventBus
 from src.infra.repositories.cart_repo import SQLAlchemyCartRepository
 from src.infra.repositories.inventory_repo import SQLAlchemyInventoryRepository
 from src.infra.repositories.order_repo import SQLAlchemyOrderRepository
@@ -60,7 +62,7 @@ router = APIRouter()
 @router.get("/health", tags=["Health"])
 def health(db: Session = Depends(get_db)):
     try:
-        db.execute(db.bind.dialect.statement_compiler(dialect=None, statement=None).__class__)
+        db.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected"}
     except Exception:
         return {"status": "degraded", "database": "disconnected"}
@@ -299,6 +301,7 @@ def create_order(
         SQLAlchemyInventoryRepository(db),
         SQLAlchemyProductRepository(db),
         MailpitEmailAdapter(),
+        LoggingEventBus(),
     )
     result = use_case.execute(uuid.UUID(current_user.id), uuid.UUID(cart_id))
     if result.is_failure:
@@ -354,7 +357,7 @@ def transition_order_status(
     db: Session = Depends(get_db),
     _: UserModel = Depends(require_admin),
 ):
-    use_case = TransitionOrderStatusUseCase(SQLAlchemyOrderRepository(db), SQLAlchemyInventoryRepository(db))
+    use_case = TransitionOrderStatusUseCase(SQLAlchemyOrderRepository(db), SQLAlchemyInventoryRepository(db), LoggingEventBus())
     result = use_case.execute(uuid.UUID(order_id), request)
     if result.is_failure:
         detail = result.unwrap_error()

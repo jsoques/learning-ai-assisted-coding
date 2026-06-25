@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from src.application.dto.dtos import (
@@ -36,7 +36,7 @@ class CreateProductUseCase:
         except ValueError as e:
             return Result.failure(str(e))
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         product = Product(
             id=uuid.uuid4(),
             sku=SKU(request.sku),
@@ -164,7 +164,7 @@ class UpdateProductUseCase:
             product.category_id = request.category_id
         if request.status is not None:
             product.status = ProductStatus(request.status)
-        product.updated_at = datetime.utcnow()
+        product.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
         updated = self._product_repo.update(product)
         return Result.success(

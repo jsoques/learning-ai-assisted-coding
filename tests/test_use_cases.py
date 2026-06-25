@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -37,8 +37,8 @@ def user() -> User:
         email=EmailAddress("test@example.com"),
         hashed_password="hashedpass",
         role="customer",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
 
@@ -49,8 +49,8 @@ def admin() -> User:
         email=EmailAddress("admin@example.com"),
         hashed_password="hashedpass",
         role="admin",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
 
@@ -69,8 +69,8 @@ def product(category: Category) -> Product:
         price=Money(Decimal("19.99")),
         category_id=category.id,
         status=ProductStatus.ACTIVE,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
 
@@ -323,7 +323,7 @@ class TestCreateOrderUseCase:
         product_repo.create(product)
         inv_repo.save(inventory)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         cart = Cart(id=uuid.uuid4(), user_id=user.id, session_id=None,
                      items=[CartItem(product_id=product.id, quantity=2, unit_price=product.price)],
                      created_at=now, updated_at=now)
@@ -342,7 +342,7 @@ class TestCreateOrderUseCase:
         inv_repo = InMemoryInventoryRepo()
         email_port = SpyEmailPort()
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         cart = Cart(id=uuid.uuid4(), user_id=user.id, session_id=None, items=[],
                      created_at=now, updated_at=now)
         cart_repo.create(cart)

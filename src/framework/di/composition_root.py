@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from src.framework.auth.csrf import CSRFMiddleware
 from src.framework.auth.jwt import hash_password, verify_password
 from src.framework.db.models import Base, CategoryModel, InventoryModel, ProductModel, UserModel
 from src.framework.db.session import SessionLocal, engine
@@ -214,6 +215,7 @@ def create_app() -> FastAPI:
             return await call_next(request)
 
     app.add_middleware(DocsAuthMiddleware)
+    app.add_middleware(CSRFMiddleware)
 
     app.add_middleware(
         CORSMiddleware,

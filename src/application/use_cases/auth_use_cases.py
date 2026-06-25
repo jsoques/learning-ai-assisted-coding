@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.application.dto.dtos import (
     LoginRequest,
@@ -34,7 +34,7 @@ class RegisterUserUseCase:
             return Result.failure("Email already registered")
 
         hashed = hash_password(request.password)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         user = User(
             id=uuid.uuid4(),
             email=email,

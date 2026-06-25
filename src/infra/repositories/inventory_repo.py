@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.application.ports.inventory_repository import InventoryRepository
 from src.domain.entities.models import InventoryItem, RestockEvent
 from src.framework.db.models import InventoryModel, RestockEventModel
-from src.framework.db.session import SessionLocal
+
 
 
 class SQLAlchemyInventoryRepository(InventoryRepository):

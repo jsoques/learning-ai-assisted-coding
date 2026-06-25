@@ -7,6 +7,29 @@
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://unpkg.com/alpinejs@3.14.8" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        function getCsrfToken() {
+            var match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+            return match ? match[1] : '';
+        }
+        document.addEventListener('htmx:configRequest', function(evt) {
+            var token = getCsrfToken();
+            if (token) evt.detail.headers['X-CSRF-Token'] = token;
+        });
+        document.addEventListener('submit', function(evt) {
+            var form = evt.target;
+            if (form.method && form.method.toLowerCase() === 'post') {
+                var token = getCsrfToken();
+                if (token && !form.querySelector('input[name="csrf_token"]')) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'csrf_token';
+                    input.value = token;
+                    form.appendChild(input);
+                }
+            }
+        });
+    </script>
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-50 min-h-screen">

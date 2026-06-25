@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.application.dto.dtos import AddCartItemRequest, CartItemResponse, CartResponse
 from src.application.ports.cart_repository import CartRepository
@@ -24,7 +24,7 @@ class AddToCartUseCase:
             return Result.failure("Product not found or inactive")
 
         if cart_id is None:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
             cart = Cart(
                 id=uuid.uuid4(),
                 user_id=user_id,
@@ -50,7 +50,7 @@ class AddToCartUseCase:
                 unit_price=product.price,
             )
         )
-        cart.updated_at = datetime.utcnow()
+        cart.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         self._cart_repo.save(cart)
         return Result.success(self._cart_to_response(cart))
 
@@ -86,7 +86,7 @@ class RemoveFromCartUseCase:
         elif product_id:
             cart.items = [i for i in cart.items if i.product_id != product_id]
 
-        cart.updated_at = datetime.utcnow()
+        cart.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         self._cart_repo.save(cart)
         return Result.success(
             CartResponse(
@@ -161,7 +161,7 @@ class MergeCartOnLoginUseCase:
         if user_cart is None and anon_cart:
             anon_cart.user_id = user_id
             anon_cart.session_id = None
-            anon_cart.updated_at = datetime.utcnow()
+            anon_cart.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             self._cart_repo.save(anon_cart)
             return Result.success(
                 CartResponse(
@@ -190,7 +190,7 @@ class MergeCartOnLoginUseCase:
                 )
             user_cart.items.append(anon_item)
 
-        user_cart.updated_at = datetime.utcnow()
+        user_cart.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         self._cart_repo.save(user_cart)
         self._cart_repo.delete(anon_cart.id)
 

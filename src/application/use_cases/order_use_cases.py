@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.application.dto.dtos import (
     OrderLineItemResponse,
@@ -11,12 +11,13 @@ from src.application.dto.dtos import (
 )
 from src.application.ports.cart_repository import CartRepository
 from src.application.ports.email_port import EmailPort
+from src.application.ports.event_bus import EventBus
 from src.application.ports.inventory_repository import InventoryRepository
 from src.application.ports.order_repository import OrderRepository
 from src.application.ports.product_repository import ProductRepository
 from src.application.result import Result
 from src.domain.entities.models import Order, OrderLineItem
-from src.domain.events.events import OrderCancelled, OrderPlaced
+from src.domain.events.events import LowStockAlert, OrderCancelled, OrderPlaced, StockDepleted
 from src.domain.value_objects.common import Money, OrderStatus
 
 
@@ -28,12 +29,14 @@ class CreateOrderUseCase:
         inventory_repo: InventoryRepository,
         product_repo: ProductRepository,
         email_port: EmailPort,
+        event_bus: EventBus | None = None,
     ):
         self._order_repo = order_repo
         self._cart_repo = cart_repo
         self._inventory_repo = inventory_repo
         self._product_repo = product_repo
         self._email_port = email_port
+        self._event_bus = event_bus
 
     def execute(self, user_id: uuid.UUID, cart_id: uuid.UUID) -> Result[OrderResponse, str]:
         cart = self._cart_repo.find_by_id(cart_id)
@@ -53,7 +56,7 @@ class CreateOrderUseCase:
         for item in cart.items:
             self._inventory_repo.reserve(item.product_id, item.quantity)
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         line_items = []
         for item in cart.items:
             product = self._product_repo.find_by_id(item.product_id)
@@ -87,6 +90,40 @@ class CreateOrderUseCase:
             total=float(total.amount),
         )
 
+        if self._event_bus:
+            self._event_bus.publish(
+                OrderPlaced(
+                    event_id=uuid.uuid4(),
+                    occurred_at=now,
+                    order_id=created.id,
+                    user_id=user_id,
+                    total=float(total.amount),
+                )
+            )
+            for item in line_items:
+                inv = self._inventory_repo.find_by_product_id(item.product_id)
+                if inv and inv.is_low_stock:
+                    self._event_bus.publish(
+                        LowStockAlert(
+                            event_id=uuid.uuid4(),
+                            occurred_at=now,
+                            product_id=item.product_id,
+                            sku=str(item.product_id),
+                            available=inv.available,
+                            threshold=inv.low_stock_threshold,
+                        )
+                    )
+                if inv and inv.available <= 0:
+                    self._event_bus.publish(
+                        StockDepleted(
+                            event_id=uuid.uuid4(),
+                            occurred_at=now,
+                            product_id=item.product_id,
+                            sku=str(item.product_id),
+                            available=inv.available,
+                        )
+                    )
+
         return Result.success(self._to_response(created))
 
     def _to_response(self, order: Order) -> OrderResponse:
@@ -111,9 +148,10 @@ class CreateOrderUseCase:
 
 
 class TransitionOrderStatusUseCase:
-    def __init__(self, order_repo: OrderRepository, inventory_repo: InventoryRepository):
+    def __init__(self, order_repo: OrderRepository, inventory_repo: InventoryRepository, event_bus: EventBus | None = None):
         self._order_repo = order_repo
         self._inventory_repo = inventory_repo
+        self._event_bus = event_bus
 
     def execute(
         self, order_id: uuid.UUID, request: TransitionOrderStatusRequest
@@ -135,6 +173,15 @@ class TransitionOrderStatusUseCase:
         if target == OrderStatus.CANCELLED:
             for item in order.line_items:
                 self._inventory_repo.release(item.product_id, item.quantity)
+            if self._event_bus:
+                self._event_bus.publish(
+                    OrderCancelled(
+                        event_id=uuid.uuid4(),
+                        occurred_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                        order_id=order_id,
+                        user_id=order.user_id,
+                    )
+                )
 
         updated = self._order_repo.update_status(order_id, target.value)
         return Result.success(

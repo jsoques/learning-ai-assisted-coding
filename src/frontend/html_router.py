@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -82,7 +83,7 @@ def login_post(
 
     user = db.query(UserModel).filter(UserModel.email == email).first()
     session_token = jwt.encode(
-        {"sub": user.id, "role": user.role, "type": "session"},
+        {"sub": user.id, "role": user.role, "type": "session", "exp": datetime.now(timezone.utc) + timedelta(days=1)},
         SECRET_KEY,
         algorithm=ALGORITHM,
     )
@@ -147,7 +148,7 @@ def change_password_page(
         return RedirectResponse(url="/auth/login", status_code=303)
     err = request.query_params.get("error")
     msg = request.query_params.get("message")
-    return templates.TemplateResponse(request,"auth/change_password.html", {"request": request, "error": err, "message": msg})
+    return templates.TemplateResponse(request,"auth/change_password.html", {"request": request, "user": user, "error": err, "message": msg})
 
 
 @router.post("/auth/change-password", tags=["HTMx-FrontEnd"])
@@ -278,25 +279,26 @@ def cart_page(
         return RedirectResponse(url="/auth/login", status_code=303)
     cart_repo = SQLAlchemyCartRepository(db)
     cart = cart_repo.find_by_user_id(uuid.UUID(user.id))
-    cart_data = None
     if cart:
         product_repo = SQLAlchemyProductRepository(db)
-        items = []
+        cart_items = []
         total = Decimal("0")
         for ci in cart.items:
             p = product_repo.find_by_id(ci.product_id)
             name = p.name if p else "Unknown"
             unit_total = ci.unit_price.amount * ci.quantity
             total += unit_total
-            items.append({
+            cart_items.append({
                 "product_id": str(ci.product_id),
                 "product_name": name,
                 "quantity": ci.quantity,
                 "unit_price": float(ci.unit_price.amount),
                 "line_total": float(unit_total),
             })
-        cart_data = {"items": items, "total": float(total)}
-    return templates.TemplateResponse(request,"cart/cart.html", {"request": request, "cart": cart_data})
+        cart_view = {"cart_items": cart_items, "total": float(total)}
+    else:
+        cart_view = None
+    return templates.TemplateResponse(request, "cart/cart.html", {"request": request, "user": user, "cart": cart_view})
 
 
 @router.delete("/cart/items/{product_id}", tags=["HTMx-FrontEnd"])
@@ -347,23 +349,7 @@ def orders_page(
     uc = ListOrdersUseCase(SQLAlchemyOrderRepository(db))
     result = uc.execute(user_id=uuid.UUID(user.id), status=status or None)
     orders = result.unwrap().items if result.is_success else []
-    return templates.TemplateResponse(request,"orders/history.html", {"request": request, "orders": orders})
-
-
-@router.get("/orders/{order_id}", response_class=HTMLResponse, tags=["HTMx-FrontEnd"])
-def order_detail(
-    request: Request,
-    order_id: str,
-    db: Session = Depends(get_db),
-):
-    user = _auth_check(request, db)
-    if not user:
-        return RedirectResponse(url="/auth/login", status_code=303)
-    uc = GetOrderUseCase(SQLAlchemyOrderRepository(db))
-    result = uc.execute(uuid.UUID(order_id), uuid.UUID(user.id), user.role == "admin")
-    if result.is_failure:
-        return RedirectResponse(url="/orders", status_code=303)
-    return templates.TemplateResponse(request,"orders/detail.html", {"request": request, "order": result.unwrap()})
+    return templates.TemplateResponse(request,"orders/history.html", {"request": request, "user": user, "orders": orders})
 
 
 @router.get("/orders/checkout", tags=["HTMx-FrontEnd"])
@@ -391,6 +377,22 @@ def checkout(
     return RedirectResponse(url="/cart", status_code=303)
 
 
+@router.get("/orders/{order_id}", response_class=HTMLResponse, tags=["HTMx-FrontEnd"])
+def order_detail(
+    request: Request,
+    order_id: str,
+    db: Session = Depends(get_db),
+):
+    user = _auth_check(request, db)
+    if not user:
+        return RedirectResponse(url="/auth/login", status_code=303)
+    uc = GetOrderUseCase(SQLAlchemyOrderRepository(db))
+    result = uc.execute(uuid.UUID(order_id), uuid.UUID(user.id), user.role == "admin")
+    if result.is_failure:
+        return RedirectResponse(url="/orders", status_code=303)
+    return templates.TemplateResponse(request,"orders/detail.html", {"request": request, "user": user, "order": result.unwrap()})
+
+
 @router.get("/admin", response_class=HTMLResponse, tags=["HTMx-FrontEnd"])
 def admin_dashboard(
     request: Request,
@@ -409,6 +411,7 @@ def admin_dashboard(
     orders = result.unwrap().items if result.is_success else []
     return templates.TemplateResponse(request,"admin/dashboard.html", {
         "request": request,
+        "user": user,
         "stats": {"order_count": order_count, "product_count": product_count, "low_stock_count": low_stock_count},
         "orders": orders,
     })
@@ -425,7 +428,7 @@ def admin_orders(
     uc = ListOrdersUseCase(SQLAlchemyOrderRepository(db))
     result = uc.execute(is_admin=True)
     orders = result.unwrap().items if result.is_success else []
-    return templates.TemplateResponse(request,"admin/orders.html", {"request": request, "orders": orders})
+    return templates.TemplateResponse(request,"admin/orders.html", {"request": request, "user": user, "orders": orders})
 
 
 @router.patch("/admin/orders/{order_id}/status", tags=["HTMx-FrontEnd"])
@@ -450,8 +453,8 @@ def admin_update_order_status(
         opts += f'<option value="{s}" {sel}>{s.capitalize()}</option>'
     return HTMLResponse(f'''
     <tr class="border-b" id="order-row-{order.id}">
-        <td class="py-2 text-sm">{order.id[:8]}...</td>
-        <td class="py-2 text-sm">{order.user_id[:8]}...</td>
+        <td class="py-2 text-sm">{str(order.id)[:8]}...</td>
+        <td class="py-2 text-sm">{str(order.user_id)[:8]}...</td>
         <td class="py-2"><span class="px-2 py-1 rounded text-xs font-medium {cls}">{order.status}</span></td>
         <td class="py-2">${order.total}</td>
         <td class="py-2"><select class="border rounded px-2 py-1 text-sm" hx-patch="/admin/orders/{order.id}/status" hx-target="#order-row-{order.id}" hx-swap="outerHTML" name="status">{opts}</select></td>
@@ -469,7 +472,7 @@ def admin_products(
         return RedirectResponse(url="/auth/login", status_code=303)
     products = db.query(ProductModel).all()
     categories = db.query(CategoryModel).all()
-    return templates.TemplateResponse(request,"admin/products.html", {"request": request, "products": products, "categories": categories})
+    return templates.TemplateResponse(request,"admin/products.html", {"request": request, "user": user, "products": products, "categories": categories})
 
 
 @router.post("/admin/products", tags=["HTMx-FrontEnd"])
@@ -535,7 +538,7 @@ def admin_inventory(
             "low_stock_threshold": inv.low_stock_threshold,
             "is_low_stock": available <= inv.low_stock_threshold,
         })
-    return templates.TemplateResponse(request,"admin/inventory.html", {"request": request, "inventory_items": items})
+    return templates.TemplateResponse(request,"admin/inventory.html", {"request": request, "user": user, "inventory_items": items})
 
 
 @router.post("/admin/inventory/{product_id}/restock", tags=["HTMx-FrontEnd"])

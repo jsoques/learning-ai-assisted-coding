@@ -19,8 +19,8 @@
         <tbody>
             {% for order in orders %}
             <tr class="border-b" id="order-row-{{ order.id }}">
-                <td class="py-2 text-sm">{{ order.id[:8] }}...</td>
-                <td class="py-2 text-sm">{{ order.user_id[:8] }}...</td>
+                <td class="py-2 text-sm">{{ (order.id|string)[:8] }}...</td>
+                <td class="py-2 text-sm">{{ (order.user_id|string)[:8] }}...</td>
                 <td class="py-2">
                     <span class="px-2 py-1 rounded text-xs font-medium
                         {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800

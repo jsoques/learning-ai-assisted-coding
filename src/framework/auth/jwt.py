@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -8,7 +9,7 @@ import bcrypt as _bcrypt
 from src.domain.entities.models import User
 from src.framework.db.session import get_db
 
-SECRET_KEY = "dev-secret-change-in-production"
+SECRET_KEY = os.environ.get("JWT_SECRET", "dev-secret-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7

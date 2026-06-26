@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import asynccontextmanager
 
 import base64
 
@@ -179,8 +180,16 @@ def seed_products():
 PROTECTED_PATHS = ("/docs", "/redoc", "/openapi.json")
 
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    seed_admin()
+    seed_products()
+    yield
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="E-Commerce API", version="0.1.0")
+    app = FastAPI(title="E-Commerce API", version="0.1.0", lifespan=lifespan)
 
     class DocsAuthMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
@@ -227,11 +236,5 @@ def create_app() -> FastAPI:
 
     app.include_router(html_router)
     app.include_router(router, prefix="/api")
-
-    @app.on_event("startup")
-    def on_startup():
-        Base.metadata.create_all(bind=engine)
-        seed_admin()
-        seed_products()
 
     return app

@@ -87,6 +87,10 @@ All prompts are listed in chronological order as they were issued to the AI assi
 
 23. **"Write a README.md with all the prompts I have given to you"** — This document.
 
+24. **"Running tests, I get these warnings: on_event is deprecated, use lifespan event handlers instead"** — Replaced `@app.on_event("startup")` with FastAPI lifespan context manager in `composition_root.py`.
+
+25. **"The app is very slow to start and pages load very slowly"** — Made OpenTelemetry opt-in (conditional on `OTEL_EXPORTER_OTLP_ENDPOINT` being set); added gRPC connection timeout; swapped `SimpleSpanProcessor` for `BatchSpanProcessor`; added SQLite WAL mode + `synchronous=NORMAL` + busy timeout.
+
 ---
 
 ## AI Tools Involved
@@ -191,7 +195,7 @@ The application follows **Clean Architecture** with strict dependency inversion 
 | **Application** | Domain only | `use_cases/` — 5 use case files (auth, cart, inventory, order, product); `dto/dtos.py` — request/response DTOs; `ports/` — 6 repository ABCs; `result/` — Result[T] type |
 | **Interface Adapters** | Application | `controllers/api.py` — 24 REST endpoints; serializers |
 | **Infrastructure** | Application | `repositories/` — 5 SQLAlchemy repo implementations; `email/mailpit_adapter.py` — Mailpit email sender |
-| **Framework** | All above + FastAPI | `auth/` — JWT + dependencies; `db/models.py` — SQLAlchemy ORM models; `db/session.py` — engine + session; `di/composition_root.py` — FastAPI app factory, DI wiring, middleware, seed data |
+| **Framework** | All above + FastAPI | `auth/` — JWT + dependencies; `db/models.py` — SQLAlchemy ORM models; `db/session.py` — engine + session (WAL mode); `di/composition_root.py` — FastAPI app factory, DI wiring, middleware, lifespan (seed data); `main.py` — entry point, conditional OTEL setup |
 | **Frontend** | Application + Jinja2 | `html_router.py` — 27 HTML routes; `templates/` — 14 Jinja2 templates |
 
 ### Key Design Decisions
@@ -201,8 +205,10 @@ The application follows **Clean Architecture** with strict dependency inversion 
 - **Swagger accepts both Bearer and Basic Auth**: The `Authorize` button shows username/password fields (Basic Auth) and a token field (Bearer JWT).
 - **HTML routes before API routes**: Router include order prevents path conflicts; API routes live under `/api` prefix.
 - **Docs protected by middleware-level HTTP Basic Auth**: Checked against `users` table (admin role only), not route-level dependencies.
-- **Auto-seeding on startup**: Admin user + 100 products across 8 categories + inventory records created if the database is empty.
+- **Auto-seeding on startup**: Admin user + 100 products across 8 categories + inventory records created via FastAPI lifespan context manager.
 - **Aspire via AddExecutable**: Python process runs directly (not in Docker) for faster local iteration; environment variables configured inline.
+- **OpenTelemetry opt-in**: Only configured when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (no default). Uses `BatchSpanProcessor` over gRPC with 5s connect timeout.
+- **SQLite WAL mode**: `PRAGMA journal_mode=WAL` + `synchronous=NORMAL` for concurrent read performance and faster writes.
 
 ### Database Schema (SQLAlchemy Models)
 
@@ -347,7 +353,7 @@ az containerapp update \
   --set-env-vars \
     DATABASE_URL="sqlite:///data/ecommerce.db" \
     JWT_SECRET="<secure-random-secret>" \
-    OPENTELEMETRY_ENDPOINT="" \  # Disable OTEL in production
+    OTEL_EXPORTER_OTLP_ENDPOINT="" \  # OTEL opt-in (set endpoint to enable)
     MAILPIT_URL="<your-mailpit-url>"
 
 # Enable file share for SQLite persistence (optional)
@@ -380,8 +386,8 @@ az webapp config appsettings set \
   --settings \
     DATABASE_URL="sqlite:///data/ecommerce.db" \
     JWT_SECRET="<secure-random-secret>" \
-    OPENTELEMETRY_ENDPOINT=""
-```
+    OTEL_EXPORTER_OTLP_ENDPOINT=""
+    ```
 
 ### Option 3: Azure VM with Docker
 
@@ -403,7 +409,7 @@ docker compose up -d
 - [ ] Change `JWT_SECRET` to a strong random value (use `openssl rand -hex 32`)
 - [ ] Replace SQLite with PostgreSQL or Azure SQL for production
 - [ ] Set up a real email provider (SendGrid, SMTP) instead of Mailpit
-- [ ] Disable OpenTelemetry (`OPENTELEMETRY_ENDPOINT=""`) unless using an OTLP collector
+- [ ] Disable OpenTelemetry (leave `OTEL_EXPORTER_OTLP_ENDPOINT` unset) unless using an OTLP collector
 - [ ] Disable CORS `allow_origins=["*"]` — restrict to your frontend domain
 - [ ] Set up proper logging (Azure Monitor / Application Insights)
 - [ ] Configure a reverse proxy (Nginx / Caddy) for TLS termination

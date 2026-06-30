@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## 2026-06-25 (Second Pass)
+
+### Fixed
+
+- **Slow startup & page loads**: OpenTelemetry was configured unconditionally with `SimpleSpanProcessor` and no gRPC timeout, blocking every request on connection timeout to `localhost:4317`. Made OTEL opt-in (conditional on `OTEL_EXPORTER_OTLP_ENDPOINT` being set); added 5s gRPC connect timeout; swapped `SimpleSpanProcessor` for `BatchSpanProcessor`.
+- **SQLite performance**: Added WAL mode (`PRAGMA journal_mode=WAL`), `synchronous=NORMAL`, and 5s busy timeout on every connection. Added `pool_pre_ping=True` and proper pool sizing.
+- **`on_event` deprecation**: Replaced `@app.on_event("startup")` with FastAPI lifespan context manager in `composition_root.py`.
+
+### Documentation
+
+- Updated `README.md` with new prompts, corrected OTEL env var names (`OPENTELEMETRY_ENDPOINT` → `OTEL_EXPORTER_OTLP_ENDPOINT`), documented OTEL opt-in and SQLite WAL mode decisions.
+
 ## 2026-06-25
 
 ### Issues & Gaps Fixed
